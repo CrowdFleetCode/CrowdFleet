@@ -32,7 +32,7 @@ export default function CreateDaoForm({ creator }: { creator: string }) {
         e.preventDefault();
         handleSubmit();
       }}
-      className="space-y-4"
+      className="space-y-4 w-full"
     >
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
