@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { getDaoGroupById, saveDaoGroup } from "@/lib/daoStore";
 import { useEffect, useState } from "react";
 import { generateNftImage } from "@/lib/generateNFTImage";
+import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 
 export default function DaoDetailPage() {
   const { id } = useParams();
@@ -11,6 +12,8 @@ export default function DaoDetailPage() {
   const [wallet, setWallet] = useState<string | null>(null);
   const [contribution, setContribution] = useState<number>(0);
   const [imgSrc, setImgSrc] = useState<string>();
+  const connection = new Connection("https://api.devnet.solana.com");
+  const DAO_WALLET_ADDRESS = dao?.walletAddress || "3xnesTUnhaS1L1xnaX3y5Ja6aSWXB6xbQMx7CyRf2wNT";
 
   useEffect(() => {
     const found = getDaoGroupById(id as string);
@@ -25,22 +28,60 @@ export default function DaoDetailPage() {
     );
 
   const handleContribute = async () => {
-    if (!wallet || contribution <= 0)
-      return alert("Connect wallet and enter a valid amount");
+    if (!wallet || contribution <= 0) {
+      alert("Connect wallet and enter a valid amount");
+      return;
+    }
 
-    const updated = { ...dao };
-    updated.currentAmount += contribution;
-    updated.members.push({ address: wallet, amount: contribution });
-    saveDaoGroup(updated);
-    setDao(updated);
+    try {
+      if (!window.solana || !window.solana.isPhantom) {
+        alert("Phantom wallet not found");
+        return;
+      }
 
-    const dataUrl = generateNftImage({
-      name: dao.name,
-      member: wallet,
-      count: contribution,
-    });
-    setImgSrc(dataUrl);
+      const provider = window.solana;
+      await provider.connect();
+
+      const fromPubkey = new PublicKey(wallet);
+      const toPubkey = new PublicKey(DAO_WALLET_ADDRESS);
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports: contribution * 1e9, 
+        })
+      );
+
+      transaction.feePayer = fromPubkey;
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+
+      const signed = await provider.signTransaction(transaction);
+
+      const signature = await connection.sendRawTransaction(signed.serialize());
+
+      await connection.confirmTransaction(signature);
+
+      alert(`Transaction confirmed! Signature: ${signature}`);
+
+      const updated = { ...dao };
+      updated.currentAmount += contribution;
+      updated.members.push({ address: wallet, amount: contribution });
+      saveDaoGroup(updated);
+      setDao(updated);
+
+      const dataUrl = generateNftImage({
+        name: dao.name,
+        member: wallet,
+        count: contribution,
+      });
+      setImgSrc(dataUrl);
+    } catch (error: any) {
+      alert(`Transaction failed: ${error.message || error}`);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600 py-12 px-6 sm:px-12 lg:px-24 flex justify-center items-center">
