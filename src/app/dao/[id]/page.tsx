@@ -88,7 +88,7 @@ export default function DaoDetailPage() {
       <div className="max-w-3xl bg-white mx-auto space-y-8 w-500 rounded-3xl shadow-2xl p-10 border border-yellow-400 text-center">
         <h1 className="text-4xl font-extrabold text-gray-900">{dao.name}</h1>
 
-        <div className="space-y-2 text-gray-700 text-lg">
+        <div className="text-left space-y-3 text-gray-700 text-lg">
           <p>
             Funding goal:{" "}
             <span className="font-semibold text-indigo-600">{dao.goalAmount} SOL</span>
@@ -96,6 +96,19 @@ export default function DaoDetailPage() {
           <p>
             Raised so far:{" "}
             <span className="font-semibold text-indigo-600">{dao.currentAmount} SOL</span>
+          </p>
+
+          <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner border border-gray-300">
+            <div
+              className="bg-gradient-to-r from-green-400 to-green-600 h-full transition-all duration-700 ease-out"
+              style={{
+                width: `${Math.min((dao.currentAmount / dao.goalAmount) * 100, 100)}%`,
+              }}
+            />
+          </div>
+
+          <p className="text-sm text-gray-600">
+            {Math.min(Number(((dao.currentAmount / dao.goalAmount) * 100).toFixed(1)), 100)}% funded
           </p>
         </div>
 
